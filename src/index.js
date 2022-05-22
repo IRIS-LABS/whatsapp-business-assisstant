@@ -10,6 +10,9 @@ const theme = createTheme({
     primary: {
       main: '#25d366',
       darker: '#053e85',
+    },
+    success: {
+      main: "#25d366"
     }
   },
 });

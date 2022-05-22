@@ -10,17 +10,16 @@ import ItemList from './ItemList';
 import { makeStyles } from '@mui/styles';
 
 const useStyles = makeStyles({
-    content: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        height: "100vh",
-    },
+
     drawer: {
         width: "100%"
     },
     heading: {
         marginBottom: 70
+    },
+    headingContainer: {
+        display: "flex",
+        justifyContent: "center"
     }
 
 });
@@ -60,14 +59,16 @@ export default function Layout({ children, selectedIndex, onSelect }) {
             </Grid>
             <Grid
                 item
-                className={classes.content}
                 xs={6}
                 sm={9}
-                md={10
-                }>
-                <h1 className={classes.heading}>
-                    {items[selectedIndex].text}
-                </h1>
+                md={10}
+                justifyContent="center"
+            >
+                <div className={classes.headingContainer}>
+                    <h1 className={classes.heading}>
+                        {items[selectedIndex].text}
+                    </h1>
+                </div>
                 {children}
             </Grid>
         </Grid>)

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Box,
     Button,
@@ -11,6 +11,7 @@ import {
 import { makeStyles } from "@mui/styles";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import Loader from '../Loader';
 
 const validationSchema = Yup.object().shape({
     name: Yup.string().required("This field is required"),
@@ -28,13 +29,13 @@ const useStyles = makeStyles({
         boxShadow: 24,
         padding: 30,
     },
-    input: {
-        width: "100%",
-        marginTop: 20
+    title: {
+        marginBottom: "150px"
     }
+
 });
 
-export default function NewResponseModal({ open, onClose }) {
+export default function NewResponseModal({ open, onClose, onSubmit, adding, responses }) {
     const classes = useStyles();
 
     const formik = useFormik({
@@ -43,10 +44,18 @@ export default function NewResponseModal({ open, onClose }) {
             message: "",
         },
         validationSchema: validationSchema,
-        onSubmit: (values) => {
-            console.log("Values: ", values);
-        },
+        onSubmit: values => onSubmit(values),
     });
+
+    const isNameUnique = (name) => {
+        const index = responses.findIndex(r => r.name.toLowerCase() === name.toLowerCase());
+        // console.log("DEBUG: Index: ", index)
+        return index === -1;
+    }
+
+    useEffect(() => {
+        formik.handleReset()
+    }, [open])
 
 
     return (
@@ -57,19 +66,19 @@ export default function NewResponseModal({ open, onClose }) {
             aria-describedby="modal-modal-description"
         >
             <Box className={classes.box}>
-                <Typography id="modal-modal-title" variant="h6" component="h2">
+                <Typography id="modal-modal-title" variant="h6" component="h2" className={classes.title}>
                     New Response
                 </Typography>
                 <FormControl fullWidth onSubmit={formik.handleSubmit}>
                     <TextField
                         id="name"
                         label="Name"
+                        margin="normal"
                         variant="filled"
                         value={formik.values.name}
-                        helperText={formik.touched.name && formik.errors.name}
+                        helperText={formik.touched.name && formik.errors.name || !isNameUnique(formik.values.name) && "This Name Already Exists. Please Choose A Different Name"}
                         onChange={formik.handleChange}
-                        error={formik.touched.name && Boolean(formik.errors.name)}
-                        className={classes.input}
+                        error={formik.touched.name && Boolean(formik.errors.name) || !isNameUnique(formik.values.name)}
                     />
                     <TextField
                         id="message"
@@ -81,11 +90,27 @@ export default function NewResponseModal({ open, onClose }) {
                         helperText={formik.touched.message && formik.errors.message}
                         onChange={formik.handleChange}
                         error={formik.touched.message && Boolean(formik.errors.message)}
-                        className={classes.input}
                     />
                     <Grid container justifyContent="flex-end" marginTop={5}>
-                        <Button variant="outlined" style={{ marginRight: 5 }} onClick={onClose}>Close</Button>
-                        <Button onClick={formik.handleSubmit} type="submit" variant="contained">Submit</Button>
+                        <Button
+                            onClick={onClose}
+                            variant="outlined"
+                            style={{ marginRight: 10 }}
+                        >Close</Button>
+                        <Button
+                            onClick={() => {
+                                if (!isNameUnique(formik.values.name)) return
+                                formik.handleSubmit();
+                            }}
+                            type="submit"
+                            variant="contained"
+                            disabled={adding}
+                        >
+                            <Loader loading={adding}>
+                                Submit
+                            </Loader>
+
+                        </Button>
                     </Grid>
                 </FormControl>
             </Box>
