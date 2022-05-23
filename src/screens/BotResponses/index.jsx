@@ -48,9 +48,13 @@ export default function BotResponses() {
 
     const getSelectedItem = (responses) => responses.find(r => r.selected);
 
-    const handleAddResponse = (values) => {
-        setResponseAdding(true);
-        ipcRenderer.send("add-response", values)
+    const handleAddResponse = (values, files) => {
+        // setResponseAdding(true);
+        const requestData = {
+            data: values,
+            files: files.map(f => ({ name: f.name, path: f.path }))
+        }
+        ipcRenderer.send("add-response", requestData)
     };
 
     useEffect(() => {

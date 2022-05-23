@@ -12,6 +12,7 @@ import { makeStyles } from "@mui/styles";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Loader from '../Loader';
+import MediaUploader from '../MediaUploader';
 
 const validationSchema = Yup.object().shape({
     name: Yup.string().required("This field is required"),
@@ -37,15 +38,15 @@ const useStyles = makeStyles({
 
 export default function NewResponseModal({ open, onClose, onSubmit, adding, responses }) {
     const classes = useStyles();
-
     const formik = useFormik({
         initialValues: {
             name: "",
             message: "",
         },
         validationSchema: validationSchema,
-        onSubmit: values => onSubmit(values),
+        onSubmit: values => onSubmit(values, files),
     });
+    const [files, setFiles] = useState([]);
 
     const isNameUnique = (name) => {
         const index = responses.findIndex(r => r.name.toLowerCase() === name.toLowerCase());
@@ -76,9 +77,9 @@ export default function NewResponseModal({ open, onClose, onSubmit, adding, resp
                         margin="normal"
                         variant="filled"
                         value={formik.values.name}
-                        helperText={formik.touched.name && formik.errors.name || !isNameUnique(formik.values.name) && "This Name Already Exists. Please Choose A Different Name"}
+                        helperText={(formik.touched.name && formik.errors.name) || (!isNameUnique(formik.values.name) && "This Name Already Exists. Please Choose A Different Name")}
                         onChange={formik.handleChange}
-                        error={formik.touched.name && Boolean(formik.errors.name) || !isNameUnique(formik.values.name)}
+                        error={(formik.touched.name && Boolean(formik.errors.name)) || (!isNameUnique(formik.values.name))}
                     />
                     <TextField
                         id="message"
@@ -90,6 +91,9 @@ export default function NewResponseModal({ open, onClose, onSubmit, adding, resp
                         helperText={formik.touched.message && formik.errors.message}
                         onChange={formik.handleChange}
                         error={formik.touched.message && Boolean(formik.errors.message)}
+                    />
+                    <MediaUploader
+                        onChange={setFiles}
                     />
                     <Grid container justifyContent="flex-end" marginTop={5}>
                         <Button
