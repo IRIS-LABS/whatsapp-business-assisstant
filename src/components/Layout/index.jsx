@@ -3,7 +3,7 @@ import { Grid, Drawer } from '@mui/material';
 import {
     Download,
     Info,
-    PhoneIphone,
+    // PhoneIphone,
     SmartToy
 } from "@mui/icons-material"
 import ItemList from './ItemList';
@@ -36,10 +36,10 @@ export default function Layout({ children, selectedIndex, onSelect }) {
             text: 'Numbers',
             icon: <Download />,
         },
-        {
-            text: "Your Numbers",
-            icon: <PhoneIphone />,
-        },
+        // {
+        //     text: "Your Numbers",
+        //     icon: <PhoneIphone />,
+        // },
         {
             text: "About",
             icon: <Info />,

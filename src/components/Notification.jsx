@@ -13,7 +13,7 @@ export default function Notification({ type, open, onClose, message }) {
         if (reason === 'clickaway') {
             return;
         }
-        onClose()
+        if (onClose) onClose()
     };
 
     return (

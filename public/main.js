@@ -213,6 +213,14 @@ ipcMain.on("load-responses", async (event, data) => {
     else event.reply("responses-loaded", { responses, selectedResponse: getSelectedResponse(responses) })
 });
 
+
+//Contacts Events
+ipcMain.on("load-contacts", async (event, data) => {
+    const [loadSuccess, contacts] = await getFileData(CONTACTS_FILE_NAME);
+    if (!loadSuccess) event.reply("contacts-load-failed", "Load Failed");
+    else event.reply("contacts-loaded", contacts);
+});
+
 //WhatsApp Web Events
 ipcMain.on("init-WhatsApp", (event, data) => {
     console.log("INFO: Init WhatsApp...");
