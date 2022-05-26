@@ -11,6 +11,7 @@ import NewResponseModal from "./../../components/NewResponseModal";
 import { makeStyles } from '@mui/styles';
 import Loader from '../../components/Loader';
 import Notification from "../../components/Notification";
+import ResponsesTable from './ResponsesTable';
 const { ipcRenderer } = window.require("electron");
 
 const useStyles = makeStyles({
@@ -133,6 +134,9 @@ export default function BotResponses() {
                     <Button onClick={() => setNewResponsesOpen(true)} style={{ marginLeft: 15 }} variant="contained">Add New Response</Button>
                 </Grid>
             </Grid>
+            <ResponsesTable
+                responses={responses}
+            />
             <NewResponseModal
                 open={newResponseOpen}
                 onClose={() => setNewResponsesOpen(false)}

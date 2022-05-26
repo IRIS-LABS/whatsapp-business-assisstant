@@ -7,6 +7,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import TablePagination from "@mui/material/TablePagination";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -30,14 +31,36 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 
 
 export default function NumbersTable({ contacts }) {
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [data, setData] = React.useState([]);
+
+  React.useEffect(() => {
+    if (contacts.length <= rowsPerPage) setData(contacts)
+    else setData(contacts.slice(0, rowsPerPage));
+    setPage(0);
+  }, [contacts, rowsPerPage]);
+
+  const handleChangePage = (event, newPage) => {
+    const endIndex = (newPage + 1) * rowsPerPage;
+    const startIndex = endIndex - rowsPerPage;
+    if (contacts.length < endIndex + 1) setData(contacts.slice(startIndex))
+    else setData(contacts.slice(startIndex, endIndex))
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
   return (
-    <div style={{ paddingRight: 20 }}>
+    <div style={{ paddingRight: 20, paddingBottom: 20 }}>
       <TableContainer component={Paper} sx={{ marginTop: 5 }}>
         <Table aria-label="customized table">
           <TableHead>
             <TableRow>
               <StyledTableCell>Name</StyledTableCell>
-              <StyledTableCell align="right">Phone Number</StyledTableCell>
+              <StyledTableCell>Phone Number</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -46,12 +69,21 @@ export default function NumbersTable({ contacts }) {
                 <StyledTableCell component="th">
                   {contact.name}
                 </StyledTableCell>
-                <StyledTableCell align="right">{contact.phoneNumber}</StyledTableCell>
+                <StyledTableCell>{contact.phoneNumber}</StyledTableCell>
               </StyledTableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={contacts.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
     </div>
   );
 }
