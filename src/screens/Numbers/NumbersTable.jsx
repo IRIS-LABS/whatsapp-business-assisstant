@@ -64,7 +64,7 @@ export default function NumbersTable({ contacts }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {contacts.map(contact => (
+            {data.map(contact => (
               <StyledTableRow key={contact.phoneNumber}>
                 <StyledTableCell component="th">
                   {contact.name}

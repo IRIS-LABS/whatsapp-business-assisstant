@@ -8,6 +8,9 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { Button, TablePagination } from '@mui/material';
+import Popup from '../../components/Popup';
+import Notification from '../../components/Notification';
+const { ipcRenderer } = window.require("electron");
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -30,10 +33,35 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }));
 
 
-export default function ResponsesTable({ responses }) {
+export default function ResponsesTable({ responses, onResponseDelete }) {
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(5);
     const [data, setData] = React.useState([]);
+    const [open, setOpen] = React.useState(false);
+    const [deleteResponse, setDeleteResponse] = React.useState();
+    const [notificationMessage, setNotificationMessage] = React.useState("");
+    const [notificationType, setNotificationType] = React.useState("success");
+    const [notificationOpen, setNotificationOpen] = React.useState(false);
+    const [loading, setLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        ipcRenderer.on("response-deleted", (event, newResponses) => {
+            setNotificationMessage("Response Deleted Succeesfully...");
+            setNotificationType("success");
+            setNotificationOpen(true);
+            setLoading(false);
+            setOpen(false);
+            onResponseDelete(newResponses);
+        });
+
+        ipcRenderer.on("response-delete-failed", (event) => {
+            setNotificationMessage("Response Delete Failed...");
+            setNotificationType("error");
+            setNotificationOpen(true);
+            setLoading(false);
+            setOpen(false);
+        });
+    }, []);
 
     React.useEffect(() => {
         if (responses.length <= rowsPerPage) setData(responses)
@@ -54,6 +82,17 @@ export default function ResponsesTable({ responses }) {
         setPage(0);
     };
 
+    const handleDeleteClick = (response) => {
+        setDeleteResponse(response);
+        setOpen(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        setLoading(true)
+        ipcRenderer.send("delete-response", deleteResponse)
+    };
+
+
     return (
         <div style={{ paddingRight: 20, paddingBottom: 20 }}>
             <TableContainer component={Paper} sx={{ marginTop: 5 }}>
@@ -71,8 +110,8 @@ export default function ResponsesTable({ responses }) {
                                 <StyledTableCell component="th">
                                     {response.name}
                                 </StyledTableCell>
-                                <StyledTableCell><Button variant="contained">View</Button></StyledTableCell>
-                                <StyledTableCell><Button variant="contained" color={"error"} disabled={response.selected}>Delete</Button></StyledTableCell>
+                                <StyledTableCell><Button variant="contained" style={{ color: "#FFF" }} >View</Button></StyledTableCell>
+                                <StyledTableCell><Button variant="contained" color={"error"} disabled={response.selected} onClick={() => handleDeleteClick(response)}>Delete</Button></StyledTableCell>
                             </StyledTableRow>
                         ))}
                     </TableBody>
@@ -86,6 +125,21 @@ export default function ResponsesTable({ responses }) {
                 page={page}
                 onPageChange={handleChangePage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
+            />
+            <Popup
+                title={"Are you sure you want to delete?"}
+                content={"Once you delete, this response will be removed permanantly"}
+                open={open}
+                onCancel={() => setOpen(false)}
+                onConfirm={handleDeleteConfirm}
+                loading={loading}
+            />
+
+            <Notification
+                open={notificationOpen}
+                type={notificationType}
+                message={notificationMessage}
+                onClose={() => setNotificationOpen(false)}
             />
         </div>
     );

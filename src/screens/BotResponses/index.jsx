@@ -136,6 +136,7 @@ export default function BotResponses() {
             </Grid>
             <ResponsesTable
                 responses={responses}
+                onResponseDelete={setResponses}
             />
             <NewResponseModal
                 open={newResponseOpen}

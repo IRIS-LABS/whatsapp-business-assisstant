@@ -74,6 +74,22 @@ const getFileExtension = (fileName) => {
 };
 
 
+const deleteResponseMedia = async (responseName) => {
+    const dirName = `${DATA_DIR}${responseName}`;
+    const exists = await dirExists(dirName);
+    if (!exists) return true
+
+    try {
+        await fs.rm(dirName, { force: true, recursive: true });
+        console.log("INFO: Response Media Deleted Successfully...");
+        return true;
+    } catch (error) {
+        console.log("ERROR: Response Media Delete Failed...", error);
+        return false;
+    }
+}
+
+
 //Handling Responses
 const addResponse = async (data, files) => {
     try {
@@ -211,6 +227,22 @@ ipcMain.on("load-responses", async (event, data) => {
     const [loadSuccess, responses] = await getFileData(RESPONSES_FILE_NAME)
     if (!loadSuccess) event.reply("responses-load-failed", "Load Failed")
     else event.reply("responses-loaded", { responses, selectedResponse: getSelectedResponse(responses) })
+});
+
+ipcMain.on("delete-response", async (event, response) => {
+    let deleteSuccess = false;
+    const [loadSuccess, responses] = await getFileData(RESPONSES_FILE_NAME);
+    let newResponses = [];
+    if (loadSuccess) {
+        newResponses = responses.filter(r => r.name !== response.name);
+        const saved = await saveResponses(newResponses);
+        const deleted = await deleteResponseMedia(response.name);
+        deleteSuccess = saved && deleted;
+    }
+
+    if (deleteSuccess) event.reply("response-deleted", newResponses)
+    else event.reply("response-delete-failed")
+
 });
 
 
