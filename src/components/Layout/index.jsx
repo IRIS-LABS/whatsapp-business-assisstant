@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Grid, Drawer } from '@mui/material';
 import {
     Download,
@@ -8,6 +8,7 @@ import {
 } from "@mui/icons-material"
 import ItemList from './ItemList';
 import { makeStyles } from '@mui/styles';
+const { ipcRenderer } = window.require("electron");
 
 const useStyles = makeStyles({
 
@@ -26,6 +27,14 @@ const useStyles = makeStyles({
 
 
 export default function Layout({ children, selectedIndex, onSelect }) {
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        ipcRenderer.on("user-recieved", (event, user) => {
+            setUser(user);
+        });
+    }, [])
+
     const classes = useStyles();
     const items = [
         {
@@ -54,7 +63,12 @@ export default function Layout({ children, selectedIndex, onSelect }) {
                     variant="persistent"
                     className={classes.drawer}
                 >
-                    <ItemList onSelect={onSelect} items={items} selectedIndex={selectedIndex} />
+                    <ItemList
+                        user={user}
+                        onSelect={onSelect}
+                        items={items}
+                        selectedIndex={selectedIndex}
+                    />
                 </Drawer>
             </Grid>
             <Grid

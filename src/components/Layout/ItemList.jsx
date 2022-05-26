@@ -14,6 +14,7 @@ import { makeStyles, useTheme } from "@mui/styles";
 const useStyles = makeStyles({
     account: {
         width: "100%",
+        height: 100,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -33,7 +34,7 @@ const useStyles = makeStyles({
 
 });
 
-export default function ItemList({ items, onSelect, selectedIndex }) {
+export default function ItemList({ items, onSelect, selectedIndex, user }) {
     const classes = useStyles();
     const theme = useTheme();
 
@@ -48,9 +49,8 @@ export default function ItemList({ items, onSelect, selectedIndex }) {
             <div className={classes.account}>
 
                 <WhatsApp color={'primary'} fontSize={"large"} />
-                <span className={classes.name}>Sanuja Tharinda</span>
-                <span className={classes.number}>+94712111663</span>
-
+                {user && <span className={classes.name}>{user.name}</span>}
+                {user && <span className={classes.number}>{user.phoneNumber}</span>}
             </div>
             <Divider />
             <List>

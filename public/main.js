@@ -273,15 +273,27 @@ ipcMain.on("init-WhatsApp", (event, data) => {
             client.removeListener("qr", () => console.log("Listener Removed"))
         });
 
-        client.on('ready', () => {
+        client.on('ready', async () => {
             console.log('INFO: Client is ready...');
-            event.reply('ready', "Client Is ready");
+
+            const contacts = await client.getContacts();
+            const index = contacts.findIndex(c => c.isMe);
+            const myAccount = contacts[index];
+            console.log("INFO: My Account: ", myAccount);
+            const auth = {
+                name: myAccount.pushname,
+                phoneNumber: myAccount.id.user
+            };
+            console.log("INFO: Auth: ", auth);
+
+            event.reply('user-recieved', auth);
+
         });
         client.on('disconnected', () => {
             console.log('INFO: Disconnected...');
         });
 
-        client.on('authenticated', () => {
+        client.on('authenticated', async () => {
             console.log("INFO: Authenticated..");
             event.reply("authenticated", "Successfully Authenticated...")
         });
