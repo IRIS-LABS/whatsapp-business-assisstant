@@ -26,6 +26,7 @@ export default function MediaUploader({ onChange }) {
                 dropzoneClass={classes.dropzone}
                 acceptedFiles={['image/*', 'video/*']}
                 onChange={onChange}
+            // initialFiles={initialFiles}
             />
         </div>
     )

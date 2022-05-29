@@ -1,48 +1,17 @@
-const fs = require("fs/promises")
+const fs = require("fs/promises");
+const path = require('path');
+const isDev = require('electron-is-dev');
 const { app, BrowserWindow, ipcMain } = require('electron');
+const log = require("electron-log");
 const { Client, MessageMedia, LocalAuth } = require('whatsapp-web.js');
 
-const AUTH_DIR = "../WhatsApp_Web_Cache";
+const AUTH_DIR = "./WhatsApp_Web_Cache";
 const DATA_DIR = "./data/";
 const RESPONSES_FILE_NAME = DATA_DIR + "responses.json";
 const CONTACTS_FILE_NAME = DATA_DIR + "contacts.json";
+const SETTINGS_FILE_NAME = DATA_DIR + "settings.json";
 
 require('@electron/remote/main').initialize();
-
-function createWindow() {
-    // Create the browser window.
-    const win = new BrowserWindow({
-        title: "WhatsApp Business Assisstant",
-        backgroundColor: "#ece5dd",
-        minWidth: 900,
-        minHeight: 600,
-        webPreferences: {
-            nodeIntegration: true,
-            enableRemoteModule: true,
-            contextIsolation: false,
-        }
-    })
-
-    win.loadURL('http://localhost:3000')
-}
-
-app.on('ready', createWindow)
-
-// Quit when all windows are closed.
-app.on('window-all-closed', function () {
-    // On OS X it is common for applications and their menu bar
-    // to stay active until the user quits explicitly with Cmd + Q
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
-})
-
-app.on('activate', function () {
-    // On OS X it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-});
-
 
 // Handling Files
 const dirExists = async (dirName) => {
@@ -63,7 +32,7 @@ const getFileData = async (fileName) => {
         if (!data || !data.length) return [true, null]
         return [true, JSON.parse(data)];
     } catch (error) {
-        console.log("DEBUG: File Read Error", error);
+        log.debug("DEBUG: File Read Error", error);
         return [false, {}];
     }
 };
@@ -81,14 +50,99 @@ const deleteResponseMedia = async (responseName) => {
 
     try {
         await fs.rm(dirName, { force: true, recursive: true });
-        console.log("INFO: Response Media Deleted Successfully...");
+        log.info("INFO: Response Media Deleted Successfully...");
         return true;
     } catch (error) {
-        console.log("ERROR: Response Media Delete Failed...", error);
+        log.error("ERROR: Response Media Delete Failed...", error);
         return false;
     }
+};
+
+function createWindow() {
+    // Create the browser window.
+    const win = new BrowserWindow({
+        title: "WhatsApp Business Assisstant",
+        backgroundColor: "#ece5dd",
+        minWidth: 900,
+        minHeight: 600,
+        autoHideMenuBar: true,
+        webPreferences: {
+            nodeIntegration: true,
+            enableRemoteModule: true,
+            contextIsolation: false
+        }
+    })
+
+    win.loadURL(
+        isDev
+            ? 'http://localhost:3000'
+            : `file://${path.join(__dirname, '../build/index.html')}`
+    )
 }
 
+app.on('ready', async () => {
+    try {
+        const dataDirExists = await dirExists(DATA_DIR);
+        if (!dataDirExists) await fs.mkdir(DATA_DIR);
+        const responsesExists = await fileExists(RESPONSES_FILE_NAME);
+        if (!responsesExists) {
+            let writeObject = [{
+                name: "Default",
+                message: "Hi! Thank you for reaching out...",
+                selected: true
+            }];
+            await fs.writeFile(RESPONSES_FILE_NAME, JSON.stringify(writeObject, null, 4));
+        };
+
+        const settingsExists = await fileExists(SETTINGS_FILE_NAME);
+        if (!settingsExists) {
+            let writeObject = {
+                showBrowser: true,
+                pathToChrome: ""
+            };
+            await fs.writeFile(SETTINGS_FILE_NAME, JSON.stringify(writeObject, null, 4));
+        };
+
+        if (!responsesExists) {
+            let writeObject = [{
+                name: "Default",
+                message: "Hi! Thank you for reaching out...",
+                selected: true
+            }];
+            await fs.writeFile(RESPONSES_FILE_NAME, JSON.stringify(writeObject, null, 4));
+        }
+    } catch (error) {
+        log.error("ERROR: Error Writing Default Data: ", error);
+    }
+
+    createWindow();
+})
+
+// Quit when all windows are closed.
+app.on('window-all-closed', function () {
+    // On OS X it is common for applications and their menu bar
+    // to stay active until the user quits explicitly with Cmd + Q
+    if (process.platform !== 'darwin') {
+        app.quit()
+    }
+})
+
+app.on('activate', function () {
+    // On OS X it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+});
+
+//Handling Settings
+const saveSettings = async (settings) => {
+    try {
+        await fs.writeFile(SETTINGS_FILE_NAME, JSON.stringify(settings, null, 4));
+        return true;
+    } catch (error) {
+        log.error("ERROR: Error Saving Settings...", error);
+        return false
+    }
+};
 
 //Handling Responses
 const addResponse = async (data, files) => {
@@ -98,23 +152,23 @@ const addResponse = async (data, files) => {
         if (files.length > 0) newResponse["hasMedia"] = true
 
         const dataDirExists = await dirExists(DATA_DIR);
-        console.log("DEBUG: Data Dir Exists: ", dataDirExists);
+        log.debug("DEBUG: Data Dir Exists: ", dataDirExists);
 
         if (!dataDirExists) await fs.mkdir(DATA_DIR)
 
         const responsesExists = await fileExists(RESPONSES_FILE_NAME);
-        console.log("DEBUG: Data Dir Exists: ", dataDirExists);
+        log.debug("DEBUG: Data Dir Exists: ", dataDirExists);
 
         if (!responsesExists) writeObject = [{ ...newResponse, selected: true }]
 
         else {
             const [readSuccess, fileData] = await getFileData(RESPONSES_FILE_NAME);
-            console.log("DEBUG: Read Success: ", readSuccess);
+            log.debug("DEBUG: Read Success: ", readSuccess);
             if (!readSuccess) return false
             writeObject = [...fileData, newResponse];
         }
 
-        console.log("DEBUG: Write Data: ", writeObject);
+        log.debug("DEBUG: Write Data: ", writeObject);
 
         if (newResponse.hasMedia) {
             const filesPath = DATA_DIR + newResponse.name;
@@ -128,10 +182,10 @@ const addResponse = async (data, files) => {
         }
 
         await fs.writeFile(RESPONSES_FILE_NAME, JSON.stringify(writeObject, null, 4));
-        console.log("INFO: New Response Successfully Written To File...");
+        log.info("INFO: New Response Successfully Written To File...");
         return true;
     } catch (error) {
-        console.log("ERROR: Error In Writing New Response To File ", error);
+        log.error("ERROR: Error In Writing New Response To File ", error);
         return false
     }
 };
@@ -141,7 +195,7 @@ const saveResponses = async (responses) => {
         await fs.writeFile(RESPONSES_FILE_NAME, JSON.stringify(responses, null, 4));
         return true;
     } catch (error) {
-        console.log("ERROR: Error Saving Responses...", error);
+        log.error("ERROR: Error Saving Responses...", error);
         return false
     }
 };
@@ -151,8 +205,9 @@ const getSelectedResponse = (responses) => {
         selected = element["selected"]
         if (selected) return element
     }
-    console.log("ERROR: No Selected Response Found");
+    log.error("ERROR: No Selected Response Found");
 };
+
 
 //Contacts
 const contactExists = async ({ phoneNumber }) => {
@@ -171,7 +226,7 @@ const contactExists = async ({ phoneNumber }) => {
         return index !== -1;
 
     } catch (error) {
-        console.log("ERROR: Error Occured When Checking Contact Existance...");
+        log.error("ERROR: Error Occured When Checking Contact Existance...");
         return false;
     }
 };
@@ -190,44 +245,72 @@ const saveContact = async (contact) => {
             if (readSuccess) writeObject = [...fileData, contact];
         }
         await fs.writeFile(CONTACTS_FILE_NAME, JSON.stringify(writeObject, null, 4));
-        console.log("INFO: Contact Saved Successfully...");
+        log.info("INFO: Contact Saved Successfully...");
     } catch (error) {
-        console.log("ERROR: Error Occured When Saving Contact:", error);
+        log.error("ERROR: Error Occured When Saving Contact:", error);
     }
 }
 
+ipcMain.on("restart-app", () => {
+    log.debug("DEBUG: Relaunch Kicked In")
+    app.relaunch();
+    app.quit();
+});
+
 //Responses Events
 ipcMain.on("select-response", async (event, data) => {
-    console.log("INFO: Initiate Select Response: ", data)
+    log.info("INFO: Initiate Select Response: ", data)
     const saved = await saveResponses(data);
 
     if (saved) {
-        console.log("INFO: Select Saved Success...");
+        log.info("INFO: Select Saved Success...");
         event.reply("response-selected", data);
     } else {
-        console.log("ERROR: Select Save Failed...");
+        log.error("ERROR: Select Save Failed...");
         event.reply("response-select-failed");
     }
 });
 
 ipcMain.on("add-response", async (event, { data, files }) => {
-    console.log("INFO: Initiate Add Response: ", data);
+    log.info("INFO: Initiate Add Response: ", data);
     const saved = await addResponse(data, files);
 
     if (saved) {
-        console.log("INFO: Response Add Success...");
+        log.info("INFO: Response Add Success...");
         event.reply("response-added", data);
     } else {
-        console.log("ERROR: Response Add Failed...");
+        log.error("ERROR: Response Add Failed...");
         event.reply("response-add-failed");
     }
 });
 
 ipcMain.on("load-responses", async (event, data) => {
-    const [loadSuccess, responses] = await getFileData(RESPONSES_FILE_NAME)
+    const [loadSuccess, responses] = await getFileData(RESPONSES_FILE_NAME);
+    // let index = 0;
+    // for (let response of responses) {
+    //     let files = [];
+    //     if (response.hasMedia) {
+    //         try {
+    //             const dirName = `${DATA_DIR}${response.name}/`;
+    //             const fileNames = await fs.readdir(dirName);
+    //             for (let fileName of fileNames) {
+    //                 let file = new LocalFileData(dirName + fileName);
+    //                 console.log("DEBUG: File: ", file);
+    //                 files.push(file);
+    //             }
+    //         } catch (error) {
+    //             console.log("ERROR: Error occured getting file names of media directory...", error);
+    //         }
+
+    //     }
+    //     responses[index]["files"] = files;
+    //     index++;
+    // }
+    // console.log("DEBUG: Responses: ", responses);
     if (!loadSuccess) event.reply("responses-load-failed", "Load Failed")
     else event.reply("responses-loaded", { responses, selectedResponse: getSelectedResponse(responses) })
 });
+
 
 ipcMain.on("delete-response", async (event, response) => {
     let deleteSuccess = false;
@@ -245,6 +328,19 @@ ipcMain.on("delete-response", async (event, response) => {
 
 });
 
+ipcMain.on("update-responses", async (event, { responses }) => {
+    console.log("INFO: Initiate Update Response: ", responses);
+    const saved = await saveResponses(responses);
+
+    if (saved) {
+        log.info("INFO: Response Update Success...");
+        event.reply("response-updated", responses);
+    } else {
+        log.error("ERROR: Response Update Failed...");
+        event.reply("response-update-failed");
+    }
+})
+
 
 //Contacts Events
 ipcMain.on("load-contacts", async (event, data) => {
@@ -254,52 +350,60 @@ ipcMain.on("load-contacts", async (event, data) => {
 });
 
 //WhatsApp Web Events
-ipcMain.on("init-WhatsApp", (event, data) => {
-    console.log("INFO: Init WhatsApp...");
+ipcMain.on("init-WhatsApp", async (event, data) => {
+    log.info("INFO: Init WhatsApp...");
+    const [readSuccess, fileData] = await getFileData(SETTINGS_FILE_NAME);
+    let puppeteerObject = {
+        headless: false
+    };
+    if (readSuccess) {
+        puppeteerObject.headless = !fileData.showBrowser
+        let path = fileData.pathToChrome;
+        if (path && path !== "") puppeteerObject["executablePath"] = path
+    }
+    log.debug("DEBUG: Puppeteer: ", puppeteerObject);
     try {
         let client
         client = new Client({
-            puppeteer: {
-                headless: false
-            },
+            puppeteer: { ...puppeteerObject },
             authStrategy: new LocalAuth({
                 dataPath: AUTH_DIR
             })
         });
+        log.debug("Client: ", client);
         client.on('qr', (qr) => {
             // Generate and scan this code with your phone
-            console.log("INFO: QR Code Sending To View...");
+            log.info("INFO: QR Code Sending To View...");
             event.reply('qr-code', qr);
-            client.removeListener("qr", () => console.log("Listener Removed"))
         });
 
         client.on('ready', async () => {
-            console.log('INFO: Client is ready...');
+            log.info('INFO: Client is ready...');
 
             const contacts = await client.getContacts();
             const index = contacts.findIndex(c => c.isMe);
             const myAccount = contacts[index];
-            console.log("INFO: My Account: ", myAccount);
+            log.info("INFO: My Account: ", myAccount);
             const auth = {
                 name: myAccount.pushname,
                 phoneNumber: myAccount.id.user
             };
-            console.log("INFO: Auth: ", auth);
+            log.info("INFO: Auth: ", auth);
 
             event.reply('user-recieved', auth);
 
         });
         client.on('disconnected', () => {
-            console.log('INFO: Disconnected...');
+            log.info('INFO: Disconnected...');
         });
 
         client.on('authenticated', async () => {
-            console.log("INFO: Authenticated..");
+            log.info("INFO: Authenticated..");
             event.reply("authenticated", "Successfully Authenticated...")
         });
 
         client.on('auth_failure', () => {
-            console.log("INFO: Auth Failed..");
+            log.info("INFO: Auth Failed..");
             event.reply("auth-failed", "Auth Failed...")
         });
 
@@ -334,18 +438,30 @@ ipcMain.on("init-WhatsApp", (event, data) => {
                     chat.sendMessage(media);
                 };
 
-                console.log("INFO: Replied To First Message...")
+                log.info("INFO: Replied To First Message...")
             } catch (error) {
-                console.log("ERROR: Error Occured Replying To First Message ", error);
+                log.error("ERROR: Error Occured Replying To First Message ", error);
                 msg.reply('Hi! Thank You For Messaging...');
             }
         });
         client.initialize();
-
+        log.debug("Initialized...");
 
     } catch (error) {
-        console.log("ERROR: Initializing Client Failed...");
+        log.error("ERROR: Initializing Client Failed...");
         process.exit();
     }
-})
+});
+
+ipcMain.on("load-settings", async (event) => {
+    const [readSuccess, fileData] = await getFileData(SETTINGS_FILE_NAME);
+    if (readSuccess) event.reply("settings-loaded", fileData)
+    else event.reply("settings-load-failed")
+});
+
+ipcMain.on("update-settings", async (event, settings) => {
+    const saved = await saveSettings(settings);
+    if (saved) event.reply("settings-updated", settings)
+    else event.reply("settings-update-failed")
+});
 

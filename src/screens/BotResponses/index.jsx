@@ -14,15 +14,15 @@ import Notification from "../../components/Notification";
 import ResponsesTable from './ResponsesTable';
 const { ipcRenderer } = window.require("electron");
 
-const useStyles = makeStyles({
-    deleteButton: {
-        marginLeft: 40
-    },
-    newResponseButton: {
-        display: "ïnline-block",
-        marginLeft: 40
-    },
-})
+// const useStyles = makeStyles({
+//     deleteButton: {
+//         marginLeft: 40
+//     },
+//     newResponseButton: {
+//         display: "ïnline-block",
+//         marginLeft: 40
+//     },
+// })
 
 export default function BotResponses() {
     const [responseAdding, setResponseAdding] = useState(false);
@@ -101,7 +101,18 @@ export default function BotResponses() {
             setNotificationType("error")
             setNotificationOpen(true);
         })
-    }, [])
+    }, []);
+
+
+    useEffect(() => {
+        if (responses) {
+            const item = getSelectedItem(responses);
+            if (item) {
+                setSelectedResponse(item);
+                setValue(item.name);
+            }
+        }
+    }, [responses])
 
     return (
         <>
@@ -137,6 +148,7 @@ export default function BotResponses() {
             <ResponsesTable
                 responses={responses}
                 onResponseDelete={setResponses}
+                onResponseUpdate={setResponses}
             />
             <NewResponseModal
                 open={newResponseOpen}

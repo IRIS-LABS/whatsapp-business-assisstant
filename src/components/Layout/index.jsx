@@ -3,6 +3,7 @@ import { Grid, Drawer } from '@mui/material';
 import {
     Download,
     Info,
+    Settings,
     // PhoneIphone,
     SmartToy
 } from "@mui/icons-material"
@@ -45,10 +46,10 @@ export default function Layout({ children, selectedIndex, onSelect }) {
             text: 'Numbers',
             icon: <Download />,
         },
-        // {
-        //     text: "Your Numbers",
-        //     icon: <PhoneIphone />,
-        // },
+        {
+            text: "Settings",
+            icon: <Settings />,
+        },
         {
             text: "About",
             icon: <Info />,

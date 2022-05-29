@@ -1,6 +1,6 @@
 {
-  "name": "react-electron",
-  "version": "0.1.0",
+  "name": "whatsapp-business-assistant",
+  "version": "0.0.1",
   "private": true,
   "dependencies": {
     "@electron/remote": "^2.0.8",
@@ -12,10 +12,10 @@
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.2.0",
     "@testing-library/user-event": "^13.5.0",
-    "concurrently": "^7.1.0",
-    "cross-env": "^7.0.3",
-    "electron": "^18.2.0",
+    "electron-is-dev": "^1.2.0",
+    "electron-log": "^4.4.7",
     "formik": "^2.2.9",
+    "get-file-object-from-local-path": "^1.0.2",
     "lottie-react": "^2.2.1",
     "react": "^18.1.0",
     "react-csv": "^2.2.2",
@@ -23,7 +23,6 @@
     "react-mui-dropzone": "^4.0.6",
     "react-qr-code": "^2.0.7",
     "react-scripts": "5.0.1",
-    "wait-on": "^6.0.1",
     "web-vitals": "^2.1.4",
     "whatsapp-web.js": "^1.16.6",
     "yup": "^0.32.11"
@@ -38,6 +37,19 @@
     "electron:serve": "concurrently -k \"cross-env BROWSER=none yarn start\" \"yarn electron:start\"",
     "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js",
     "electron:start": "wait-on tcp:3000 && electron ."
+  },
+  "build": {
+    "extends": null,
+    "appId": "com.whatsapp.assisstant",
+    "files": [
+      "dist/**/*",
+      "build/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    }
   },
   "eslintConfig": {
     "extends": [
@@ -56,5 +68,12 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^7.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^18.2.0",
+    "electron-builder": "^23.0.3",
+    "wait-on": "^5.2.1"
   }
 }
