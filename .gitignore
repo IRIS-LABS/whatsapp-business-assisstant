@@ -12,6 +12,7 @@
 /build
 /dist
 /WhatsApp_Web_Cache
+/data
 
 # misc
 .DS_Store
