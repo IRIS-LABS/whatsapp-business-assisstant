@@ -354,12 +354,29 @@ ipcMain.on("init-WhatsApp", async (event, data) => {
     log.info("INFO: Init WhatsApp...");
     const [readSuccess, fileData] = await getFileData(SETTINGS_FILE_NAME);
     let puppeteerObject = {
-        headless: false
+        headless: false,
+
     };
     if (readSuccess) {
         puppeteerObject.headless = !fileData.showBrowser
         let path = fileData.pathToChrome;
         if (path && path !== "") puppeteerObject["executablePath"] = path
+    }
+    if (!puppeteerObject.executablePath) {
+        const PCR = require("puppeteer-chromium-resolver");
+        const option = {
+            revision: "",
+            detectionPath: "",
+            folderName: ".chromium-browser-snapshots",
+            defaultHosts: ["https://storage.googleapis.com", "https://npm.taobao.org/mirrors"],
+            hosts: [],
+            cacheRevisions: 2,
+            retry: 3,
+            silent: false
+        };
+        const stats = await PCR(option);
+        log.debug("DEBUG: Launchable: ", stats.launchable);
+        puppeteerObject["executablePath"] = stats.executablePath;
     }
     log.debug("DEBUG: Puppeteer: ", puppeteerObject);
     try {
