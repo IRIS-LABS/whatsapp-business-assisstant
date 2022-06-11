@@ -103,6 +103,12 @@ app.on('ready', async () => {
             await fs.writeFile(SETTINGS_FILE_NAME, JSON.stringify(writeObject, null, 4));
         };
 
+        const contactsExists = await fileExists(CONTACTS_FILE_NAME);
+        if (!contactsExists) {
+            let writeObject = [];
+            await fs.writeFile(CONTACTS_FILE_NAME, JSON.stringify(writeObject, null, 4));
+        };
+
         if (!responsesExists) {
             let writeObject = [{
                 name: "Default",
