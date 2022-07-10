@@ -16,7 +16,7 @@ export default function About() {
     return (
         <div>
             <span className={classes.row}>App Name: WhatsApp Business Assistant</span>
-            <span className={classes.row}>Version: 1.0.0</span>
+            <span className={classes.row}>Version: 1.1.0</span>
         </div>
     )
 }
