@@ -7,6 +7,7 @@ const { Client, MessageMedia, LocalAuth } = require('whatsapp-web.js');
 
 const AUTH_DIR = "./WhatsApp_Web_Cache";
 const DATA_DIR = "./data/";
+const KEYWORDS_DIR = `${DATA_DIR}keywordMessages/`;
 const RESPONSES_FILE_NAME = DATA_DIR + "responses.json";
 const CONTACTS_FILE_NAME = DATA_DIR + "contacts.json";
 const SETTINGS_FILE_NAME = DATA_DIR + "settings.json";
@@ -54,6 +55,21 @@ const deleteResponseMedia = async (responseName) => {
         return true;
     } catch (error) {
         log.error("ERROR: Response Media Delete Failed...", error);
+        return false;
+    }
+};
+
+const deleteKeywordMedia = async (responseName, keyword) => {
+    const dirName = `${KEYWORDS_DIR}${responseName}${keyword}`;
+    const exists = await dirExists(dirName);
+    if (!exists) return true
+
+    try {
+        await fs.rm(dirName, { force: true, recursive: true });
+        log.info("INFO: Keyword Media Deleted Successfully...");
+        return true;
+    } catch (error) {
+        log.error("ERROR: Keyword Media Delete Failed...", error);
         return false;
     }
 };
@@ -232,13 +248,14 @@ const contactExists = async ({ phoneNumber }) => {
         return index !== -1;
 
     } catch (error) {
-        log.error("ERROR: Error Occured When Checking Contact Existance...");
+        log.error("ERROR: Error Occured When Checking Contact Existance...:", error);
         return false;
     }
 };
 
 const saveContact = async (contact) => {
     try {
+        console.log("DEBUG: Saving Contact:", contact);
         let writeObject;
         const dataExists = await dirExists(DATA_DIR);
         if (!dataExists) await fs.mkdir(DATA_DIR)
@@ -347,6 +364,119 @@ ipcMain.on("update-responses", async (event, { responses }) => {
     }
 })
 
+//Keyword Messages
+ipcMain.on("add-keyword-message", async (event, { newResponse, keywordMessage, files }) => {
+    console.log("INFO: Initiate Add Keyword Message: ", newResponse);
+    console.log("INFO: Files: ", files);
+
+    try {
+        const [readSuccess, responses] = await getFileData(RESPONSES_FILE_NAME);
+        if (readSuccess) {
+            const index = responses.findIndex(r => r.name === newResponse.name);
+            const updatedResponses = [...responses];
+            if (index === -1) {
+                log.error("Response not found when adding keyword...")
+                event.reply("keyword-message-add-failed");
+                return;
+            }
+            updatedResponses[index] = { ...newResponse }
+            const saved = await saveResponses(updatedResponses);
+
+            if (keywordMessage.hasMedia) {
+                const keywordDirExists = await dirExists(KEYWORDS_DIR);
+                log.debug("DEBUG: Keyword Dir Exists: ", keywordDirExists);
+
+                if (!keywordDirExists) await fs.mkdir(KEYWORDS_DIR);
+                const responseDirName = `${KEYWORDS_DIR}${newResponse.name}/`;
+                const responseDirExists = await dirExists(responseDirName);
+                log.debug("DEBUG: Response Dir Exists: ", responseDirExists);
+
+                if (!responseDirExists) await fs.mkdir(responseDirName)
+
+                const responseKeywordDirName = `${responseDirName}${keywordMessage.keyword}/`;
+                const responseKeywordDirExists = await dirExists(responseKeywordDirName);
+                if (!responseKeywordDirExists) await fs.mkdir(responseKeywordDirName);
+                const filesPath = responseKeywordDirName;
+                let count = 1;
+                for (let file of files) {
+                    const extension = getFileExtension(file.name);
+                    const targetFilePath = `${filesPath}/${count++}${extension}`;
+                    await fs.copyFile(file.path, targetFilePath);
+                }
+            }
+            if (saved) event.reply("keyword-message-add-success")
+            else {
+                log.error("Error Adding Keyword Message");
+                event.reply("keyword-message-add-failed");
+            }
+
+        } else {
+            event.reply("keyword-message-add-failed");
+        }
+    } catch (e) {
+        log.error("Error Adding Keyword Message", e);
+        event.reply("keyword-message-add-failed")
+    }
+});
+
+ipcMain.on("delete-keyword-message", async (event, { keyword, responseName, hasMedia }) => {
+
+
+    try {
+        let deleteSuccess;
+        if (hasMedia)
+            deleteSuccess = await deleteKeywordMedia(responseName, keyword);
+
+        const [readSuccess, responses] = await getFileData(RESPONSES_FILE_NAME);
+        if (!readSuccess) {
+            log.error("Couldn't read responses...");
+            event.reply("keyword-message-delete-failed")
+        }
+        const updatedResponses = [...responses];
+        const index = responses.findIndex(r => r.name === responseName);
+        const newResponse = { ...responses[index] };
+        const keywordMessages = [...responses[index]["keywordMessages"]];
+        const updatedKeywordMessages = keywordMessages.filter(km => km.keyword !== keyword);
+        newResponse["keywordMessages"] = updatedKeywordMessages;
+        updatedResponses[index] = newResponse;
+
+        const saved = await saveResponses(updatedResponses);
+        if (saved) {
+            event.reply("keyword-message-delete-success");
+            return;
+        }
+        event.reply("keyword-message-delete-failed")
+
+
+    } catch (e) {
+        log.error("Error Delete Keyword Message", e);
+        event.reply("keyword-message-delete-failed")
+    }
+});
+
+ipcMain.on("edit-keyword-message", async (event, updatedResponse) => {
+    try {
+        const [readSuccess, responses] = await getFileData(RESPONSES_FILE_NAME);
+        if (!readSuccess) {
+            event.reply("keyword-message-edit-failed");
+            return;
+        }
+        const updated = [...responses];
+        const index = updated.findIndex(r => r.name === updatedResponse.name);
+        updated[index] = updatedResponse;
+        const saved = await saveResponses(updated);
+        if (saved) {
+            event.reply("keyword-message-edit-success")
+            return
+        }
+        event.reply("keyword-message-edit-failed")
+
+    } catch (e) {
+        log.error("Error Edit Keyword Message", e);
+        event.reply("keyword-message-edit-failed")
+    }
+});
+
 
 //Contacts Events
 ipcMain.on("load-contacts", async (event, data) => {
@@ -381,10 +511,8 @@ ipcMain.on("init-WhatsApp", async (event, data) => {
             silent: false
         };
         const stats = await PCR(option);
-        log.debug("DEBUG: Launchable: ", stats.launchable);
         puppeteerObject["executablePath"] = stats.executablePath;
     }
-    log.debug("DEBUG: Puppeteer: ", puppeteerObject);
     try {
         let client
         client = new Client({
@@ -393,7 +521,6 @@ ipcMain.on("init-WhatsApp", async (event, data) => {
                 dataPath: AUTH_DIR
             })
         });
-        log.debug("Client: ", client);
         client.on('qr', (qr) => {
             // Generate and scan this code with your phone
             log.info("INFO: QR Code Sending To View...");
@@ -406,12 +533,11 @@ ipcMain.on("init-WhatsApp", async (event, data) => {
             const contacts = await client.getContacts();
             const index = contacts.findIndex(c => c.isMe);
             const myAccount = contacts[index];
-            log.info("INFO: My Account: ", myAccount);
+            // log.info("INFO: My Account: ", myAccount);
             const auth = {
                 name: myAccount.pushname,
                 phoneNumber: myAccount.id.user
             };
-            log.info("INFO: Auth: ", auth);
 
             event.reply('user-recieved', auth);
 
@@ -431,6 +557,7 @@ ipcMain.on("init-WhatsApp", async (event, data) => {
         });
 
         client.on('message', async (msg) => {
+            console.log("INFO: Message Body: ", msg.body);
             const chat = await msg.getChat();
             const contact = await chat.getContact();
             const contactData = {
@@ -439,31 +566,49 @@ ipcMain.on("init-WhatsApp", async (event, data) => {
             };
 
             const exists = await contactExists(contactData);
-            if (exists) return
-
-            await saveContact(contactData);
             const [loadSuccess, responses] = await getFileData(RESPONSES_FILE_NAME);
 
-            if (!loadSuccess) {
+            if (!loadSuccess && !exists) {
                 msg.reply('Hi! Thank You For Messaging...');
                 return
             }
 
             try {
                 const selectedResponse = getSelectedResponse(responses);
-                msg.reply(selectedResponse.message);
-                if (!selectedResponse.hasMedia) return
+                if (exists && selectedResponse.keywordMessages) {
+                    const { keywordMessages } = selectedResponse;
+                    for (let keywordMessage of keywordMessages) {
+                        const { keyword, message, hasMedia } = keywordMessage;
+                        if (msg.body.toLowerCase().includes(keyword.toLowerCase())) {
+                            msg.reply(message);
+                            if (!hasMedia) return
+                            const dirName = `${KEYWORDS_DIR}${selectedResponse.name}/${keyword}/`;
+                            const files = await fs.readdir(dirName);
+                            for (let file of files) {
+                                const media = MessageMedia.fromFilePath(`${dirName}${file}`);
+                                chat.sendMessage(media);
+                            };
+                            log.info("INFO: Replied For Keyword:", keyword)
+                            return;
+                        }
+                    }
+                }
+                if (!exists) {
+                    await saveContact(contactData);
+                    msg.reply(selectedResponse.message);
+                    if (!selectedResponse.hasMedia) return
 
-                const dirName = `${DATA_DIR}${selectedResponse.name}/`;
-                const files = await fs.readdir(dirName);
-                for (let file of files) {
-                    const media = MessageMedia.fromFilePath(`${dirName}${file}`);
-                    chat.sendMessage(media);
-                };
+                    const dirName = `${DATA_DIR}${selectedResponse.name}/`;
+                    const files = await fs.readdir(dirName);
+                    for (let file of files) {
+                        const media = MessageMedia.fromFilePath(`${dirName}${file}`);
+                        chat.sendMessage(media);
+                    };
 
-                log.info("INFO: Replied To First Message...")
+                    log.info("INFO: Replied To First Message...");
+                }
             } catch (error) {
-                log.error("ERROR: Error Occured Replying To First Message ", error);
+                log.error("ERROR: Error Occured Replying To Message ", error);
                 msg.reply('Hi! Thank You For Messaging...');
             }
         });

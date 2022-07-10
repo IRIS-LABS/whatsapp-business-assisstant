@@ -7,7 +7,6 @@ const { ipcRenderer } = window.require("electron");
 
 const Settings = () => {
     const [showBrowser, setShowBrowser] = useState(false);
-    const [pathToChrome, setPathToChrome] = useState("");
     const [settingLoading, setSettingsLoading] = useState(true);
 
     const [notificationMessage, setNotificationMessage] = useState("");
@@ -18,7 +17,6 @@ const Settings = () => {
 
     useEffect(() => {
         ipcRenderer.on("settings-loaded", (event, settings) => {
-            setPathToChrome(settings.pathToChrome);
             setShowBrowser(settings.showBrowser);
             setSettingsLoading(false);
         });
@@ -31,7 +29,6 @@ const Settings = () => {
 
         ipcRenderer.on("settings-updated", (event, settings) => {
             setSaving(false);
-            setPathToChrome(settings.pathToChrome);
             setShowBrowser(settings.showBrowser);
             setNotificationMessage("Settings updated successfully...");
             setNotificationType("success");
@@ -60,18 +57,8 @@ const Settings = () => {
                     onChange={(event) => setShowBrowser(event.target.checked)}
                 />
             </div>
-            <div>
-                <TextField
-                    style={{ width: 400 }}
-                    id="path"
-                    label="Path To Chrome"
-                    variant="filled"
-                    value={pathToChrome}
-                    onChange={(event) => setPathToChrome(event.target.value)}
-                />
-            </div>
             <Loader loading={saving}>
-                <Button variant="contained" style={{ display: "block", marginTop: 15, marginBottom: 5 }} onClick={() => handleSave({ showBrowser, pathToChrome })}>
+                <Button variant="contained" style={{ display: "block", marginTop: 15, marginBottom: 5 }} onClick={() => handleSave({ showBrowser })}>
                     Save
                 </Button>
             </Loader>

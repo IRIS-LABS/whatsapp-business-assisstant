@@ -11,6 +11,7 @@ import { Button, TablePagination } from '@mui/material';
 import EditResponseModal from "../../components/EditResponseModal";
 import Popup from '../../components/Popup';
 import Notification from '../../components/Notification';
+import KeywordMessagesModal from '../../components/KeywordMessagesModal';
 const { ipcRenderer } = window.require("electron");
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -44,6 +45,10 @@ export default function ResponsesTable({ responses, onResponseDelete, onResponse
     const [responseEditing, setResponseEditing] = React.useState(false);
     const [editResponseOpen, setEditResponseOpen] = React.useState(false);
     const [viewingResponse, setViewingResponse] = React.useState({ name: "", message: "" });
+
+    const [keywordMessagesOpen, setKeywordMessagesOpen] = React.useState(false);
+    const [keywordViewResponse, setKeywordViewResponse] = React.useState(null);
+
 
     const [notificationMessage, setNotificationMessage] = React.useState("");
     const [notificationType, setNotificationType] = React.useState("success");
@@ -90,6 +95,15 @@ export default function ResponsesTable({ responses, onResponseDelete, onResponse
     }, []);
 
     React.useEffect(() => {
+        if (responses && keywordViewResponse) {
+            console.log("DEBUG: Responses:", responses);
+            const item = responses.find(r => r.name === keywordViewResponse.name);
+            if (item)
+                setKeywordViewResponse(item);
+        }
+    }, [responses])
+
+    React.useEffect(() => {
         if (responses.length <= rowsPerPage) setData(responses)
         else setData(responses.slice(0, rowsPerPage));
         setPage(0);
@@ -123,6 +137,11 @@ export default function ResponsesTable({ responses, onResponseDelete, onResponse
         setEditResponseOpen(true);
     };
 
+    const handleViewKeywordMessages = (response) => {
+        setKeywordViewResponse(response);
+        setKeywordMessagesOpen(true);
+    };
+
     const handleEditResponse = (newResponse, files) => {
         console.log("DEBUG: Edited Response: ", newResponse);
         console.log("DEBUG: New Files: ", files);
@@ -142,7 +161,8 @@ export default function ResponsesTable({ responses, onResponseDelete, onResponse
                     <TableHead>
                         <TableRow>
                             <StyledTableCell>Name</StyledTableCell>
-                            <StyledTableCell>View</StyledTableCell>
+                            <StyledTableCell>First Message</StyledTableCell>
+                            <StyledTableCell>Keyword Messages</StyledTableCell>
                             <StyledTableCell>Delete</StyledTableCell>
                         </TableRow>
                     </TableHead>
@@ -153,6 +173,7 @@ export default function ResponsesTable({ responses, onResponseDelete, onResponse
                                     {response.name}
                                 </StyledTableCell>
                                 <StyledTableCell><Button variant="contained" style={{ color: "#FFF" }} onClick={() => handleViewResponse(response)} >View</Button></StyledTableCell>
+                                <StyledTableCell><Button variant="contained" style={{ color: "#FFF" }} onClick={() => handleViewKeywordMessages(response)} >View</Button></StyledTableCell>
                                 <StyledTableCell><Button variant="contained" color={"error"} disabled={response.selected} onClick={() => handleDeleteClick(response)}>Delete</Button></StyledTableCell>
                             </StyledTableRow>
                         ))}
@@ -184,6 +205,12 @@ export default function ResponsesTable({ responses, onResponseDelete, onResponse
                 open={editResponseOpen}
                 responses={responses.filter(r => r.name !== viewingResponse.name)}
                 response={viewingResponse}
+            />
+
+            <KeywordMessagesModal
+                onClose={() => setKeywordMessagesOpen(false)}
+                open={keywordMessagesOpen}
+                response={keywordViewResponse}
             />
 
             <Notification

@@ -28,7 +28,7 @@ function App() {
         console.log("DEBUG: Loading: ", loading);
         setLoadFailed(true)
       }
-    }, 30000);
+    }, 60000);
     ipcRenderer.send('init-WhatsApp')
 
     ipcRenderer.on('qr-code', (event, qr) => {

@@ -83,7 +83,7 @@ export default function NewResponseModal({ open, onClose, onSubmit, adding, resp
                     />
                     <TextField
                         id="message"
-                        label="Message"
+                        label="First Message"
                         variant="filled"
                         multiline
                         maxRows={4}
@@ -95,6 +95,16 @@ export default function NewResponseModal({ open, onClose, onSubmit, adding, resp
                     <MediaUploader
                         onChange={setFiles}
                     />
+                    {/* <Grid container marginTop={1}>
+                        <Grid item alignSelf={"center"}>
+                            <Typography variant="body1" component="h2" width={"100%"}>
+                                Keyword Messages
+                            </Typography>
+                        </Grid>
+                        <Grid item marginLeft={1}>
+                            <Button variant="contained" size="small">+</Button>
+                        </Grid>
+                    </Grid> */}
                     <Grid container justifyContent="flex-end" marginTop={5}>
                         <Button
                             onClick={onClose}
